@@ -19,6 +19,20 @@
   },
   "dependencies": {
     "@types/three": "^0.182.0",
-    "three": "^0.182.0"
-  }
+    "three": "^0.182.0",
+    "ts-node": "^10.9.2"
+  },
+  "description": "`(WIP - This is a learning project)`",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tingtingtingtin/threejs-splat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tingtingtingtin/threejs-splat/issues"
+  },
+  "homepage": "https://github.com/tingtingtingtin/threejs-splat#readme"
 }
