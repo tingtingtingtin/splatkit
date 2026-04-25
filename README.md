@@ -1,4 +1,4 @@
-# Three.js Splat Viewer
+# SplatKit: Three.js Splat Viewer
 
 Work-in-progress Gaussian Splat renderer built with Three.js, TypeScript, GLSL, and Web Workers.
 

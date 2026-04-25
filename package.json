@@ -1,5 +1,5 @@
 {
-  "name": "threejs-gs-framework",
+  "name": "@tingtingtingtin/splatkit",
   "private": false,
   "version": "0.1.0",
   "type": "module",
@@ -15,7 +15,13 @@
     "./style.css": "./src/style.css"
   },
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/SplatViewer.d.ts",
+    "dist/SplatViewerUI.d.ts",
+    "dist/classes/",
+    "dist/utils/",
+    "dist/assets/",
     "src/style.css",
     "README.md"
   ],
