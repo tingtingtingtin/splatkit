@@ -2,6 +2,13 @@ import * as THREE from "three";
 import type { SplatDataBuffers } from "./SplatLoader";
 import { packSplat } from "./SplatPacker";
 
+export interface SplatPackProgress {
+    stage: "pack";
+    packed: number;
+    total: number;
+    progress: number;
+}
+
 /**
  * SplatGeometry - Handles geometry setup and data packing for splat rendering
  */
@@ -9,7 +16,11 @@ import { packSplat } from "./SplatPacker";
 /**
  * Create and configure instanced geometry from splat data
  */
-export async function createSplatGeometry(data: SplatDataBuffers, instanceCount: number): Promise<{
+export async function createSplatGeometry(
+    data: SplatDataBuffers,
+    instanceCount: number,
+    onProgress?: (progress: SplatPackProgress) => void,
+): Promise<{
     geometry: THREE.InstancedBufferGeometry;
     texture: THREE.DataTexture;
     textureSize: THREE.Vector2;
@@ -29,6 +40,14 @@ export async function createSplatGeometry(data: SplatDataBuffers, instanceCount:
     const texData = new Uint32Array(texWidth * texHeight * 4);
 
     const CHUNK_SIZE = 500; // Process 500 splats at a time
+
+    onProgress?.({
+        stage: "pack",
+        packed: 0,
+        total: data.numSplats,
+        progress: 0,
+    });
+
     for (let start = 0; start < data.numSplats; start += CHUNK_SIZE) {
         const end = Math.min(start + CHUNK_SIZE, data.numSplats);
         
@@ -59,6 +78,13 @@ export async function createSplatGeometry(data: SplatDataBuffers, instanceCount:
             const packed = packSplat(center, scale, rotation, color, opacity);
             texData.set(packed, i * WORDS_PER_SPLAT * 4);
         }
+
+        onProgress?.({
+            stage: "pack",
+            packed: end,
+            total: data.numSplats,
+            progress: Math.min(1, end / data.numSplats),
+        });
 
         // Yield to browser between chunks
         await new Promise(resolve => setTimeout(resolve, 0));

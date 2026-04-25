@@ -9,6 +9,13 @@ export interface SplatDataBuffers {
   headerOffset: number;
 }
 
+export interface SplatLoadProgress {
+  stage: "fetch";
+  loaded: number;
+  total?: number;
+  progress: number;
+}
+
 export class SplatLoader {
   /**
    * Load a .splat file from the given URL and return its raw ArrayBuffer and header info.
@@ -18,14 +25,74 @@ export class SplatLoader {
    */
   async load(
     url: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: (progress: SplatLoadProgress) => void,
   ): Promise<{ buffer: ArrayBuffer; numSplats: number, parsed: SplatDataBuffers }> {
     const res = await fetch(url, { method: "GET", signal });
     if (!res.ok) {
       throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
     }
 
-    const buffer = await res.arrayBuffer();
+    const totalHeader = res.headers.get("content-length");
+    const total = totalHeader ? Number(totalHeader) : undefined;
+
+    let buffer: ArrayBuffer;
+    if (!res.body) {
+      buffer = await res.arrayBuffer();
+      onProgress?.({
+        stage: "fetch",
+        loaded: buffer.byteLength,
+        total,
+        progress: 1,
+      });
+    } else {
+      const reader = res.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let loaded = 0;
+
+      onProgress?.({
+        stage: "fetch",
+        loaded: 0,
+        total,
+        progress: 0,
+      });
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        if (!value) {
+          continue;
+        }
+
+        chunks.push(value);
+        loaded += value.byteLength;
+
+        onProgress?.({
+          stage: "fetch",
+          loaded,
+          total,
+          progress: total ? Math.min(1, loaded / total) : 0,
+        });
+      }
+
+      const merged = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) {
+        merged.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+
+      buffer = merged.buffer;
+      onProgress?.({
+        stage: "fetch",
+        loaded,
+        total,
+        progress: 1,
+      });
+    }
     // const dv = new DataView(buffer);
 
     // if (dv.byteLength < 4) {

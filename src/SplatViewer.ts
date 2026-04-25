@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { SplatRenderer } from "./classes/SplatRenderer";
+import type { SplatRendererProgress } from "./classes/SplatRenderer";
 
 export interface SplatViewerOptions {
   url: string;
@@ -8,6 +9,7 @@ export interface SplatViewerOptions {
   moveSpeed?: number;
   enableWASD?: boolean;
   enableRightDragPan?: boolean;
+  onProgress?: (progress: SplatRendererProgress) => void;
 }
 
 export class SplatViewer {
@@ -128,6 +130,7 @@ export class SplatViewer {
       moveSpeed = 3,
       enableWASD = true,
       enableRightDragPan = true,
+      onProgress,
     } = options;
 
     this.container = container;
@@ -157,7 +160,7 @@ export class SplatViewer {
     this.controls.enablePan = false;
     this.controls.addEventListener("change", this.onControlsChange);
 
-    this.splatRenderer = new SplatRenderer(url, this.camera);
+    this.splatRenderer = new SplatRenderer(url, this.camera, { onProgress });
     this.scene.add(this.splatRenderer.mesh);
 
     this.initialCameraPosition = this.camera.position.clone();

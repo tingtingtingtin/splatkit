@@ -1,9 +1,23 @@
 import * as THREE from "three";
 import { SplatLoader } from "./SplatLoader";
-import type { SplatDataBuffers } from "./SplatLoader";
+import type { SplatDataBuffers, SplatLoadProgress } from "./SplatLoader";
 import { createSplatGeometry } from "./SplatGeometry";
+import type { SplatPackProgress } from "./SplatGeometry";
 import { createSplatMaterial } from "./SplatMaterial";
 import { debugCurrentView as runDebugCurrentView } from "../debug/debugSplat";
+
+export interface SplatRendererProgress {
+  stage: "fetch" | "pack" | "complete";
+  progress: number;
+  loaded?: number;
+  total?: number;
+  packed?: number;
+  packTotal?: number;
+}
+
+export interface SplatRendererOptions {
+  onProgress?: (progress: SplatRendererProgress) => void;
+}
 
 export class SplatRenderer {
   public mesh: THREE.Mesh;
@@ -24,6 +38,7 @@ export class SplatRenderer {
   private isSorting = false;
   private needsSort = false;
   private targetInstanceCount = 270491;
+  private onProgress?: (progress: SplatRendererProgress) => void;
 
   private getDesiredInstanceCount(): number {
     if (!this.splatData) {
@@ -32,8 +47,9 @@ export class SplatRenderer {
     return Math.min(this.splatData.numSplats, this.targetInstanceCount);
   }
 
-  constructor(url: string, camera: THREE.Camera) {
+  constructor(url: string, camera: THREE.Camera, options?: SplatRendererOptions) {
     this.camera = camera;
+    this.onProgress = options?.onProgress;
     this.geometry = new THREE.InstancedBufferGeometry();
     this.material = createSplatMaterial();
     this.mesh = new THREE.Mesh(this.geometry, this.material);
@@ -181,7 +197,16 @@ export class SplatRenderer {
   private async loadAndPrepare(url: string): Promise<void> {
     console.log(`[SplatRenderer] Loading splat data from: ${url}`);
     try {
-      const { buffer, numSplats, parsed } = await this.loader.load(url);
+      const onFetchProgress = (fetchProgress: SplatLoadProgress) => {
+        this.onProgress?.({
+          stage: "fetch",
+          progress: fetchProgress.progress * 0.5,
+          loaded: fetchProgress.loaded,
+          total: fetchProgress.total,
+        });
+      };
+
+      const { buffer, numSplats, parsed } = await this.loader.load(url, undefined, onFetchProgress);
       console.log(`[SplatRenderer] ✓ Loaded ${numSplats} splats`);
       this.splatData = parsed;
       this.sourceBuffer = buffer;
@@ -217,8 +242,17 @@ export class SplatRenderer {
       // So negate cy and cz to compensate
       this.mesh.position.set(-cx, cy, cz);
 
+      const onPackProgress = (packProgress: SplatPackProgress) => {
+        this.onProgress?.({
+          stage: "pack",
+          progress: 0.5 + packProgress.progress * 0.5,
+          packed: packProgress.packed,
+          packTotal: packProgress.total,
+        });
+      };
+
       const { geometry, texture, textureSize, texData } =
-        await createSplatGeometry(parsed, this.targetInstanceCount);
+        await createSplatGeometry(parsed, this.targetInstanceCount, onPackProgress);
 
       this.material.uniforms.u_texture.value = texture;
       this.material.uniforms.u_textureSize.value = textureSize;
@@ -229,6 +263,11 @@ export class SplatRenderer {
       this.mesh.geometry = geometry;
 
       this.update();
+
+      this.onProgress?.({
+        stage: "complete",
+        progress: 1,
+      });
 
       console.log(`[SplatRenderer] ✓ Texture created and bound, instanceCount: ${geometry.instanceCount}`);
 

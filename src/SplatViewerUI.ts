@@ -1,4 +1,5 @@
 import { SplatViewer, type SplatViewerOptions } from "./SplatViewer";
+import type { SplatRendererProgress } from "./classes/SplatRenderer";
 
 export interface SplatViewerUIOptions extends SplatViewerOptions {
   initialPercent?: number;
@@ -20,6 +21,8 @@ export class SplatViewerUI {
   private frameCount = 0;
   private lastFpsTime = performance.now();
   private statsAnimationId?: number;
+  private latestProgress = 0;
+  private readonly externalOnProgress?: SplatViewerOptions["onProgress"];
 
   constructor(container: HTMLElement, options: SplatViewerUIOptions) {
     this.container = container;
@@ -27,11 +30,19 @@ export class SplatViewerUI {
       this.container.style.position = "relative";
     }
 
-    this.viewer = new SplatViewer(container, options);
+    this.externalOnProgress = options.onProgress;
+
+    this.viewer = new SplatViewer(container, {
+      ...options,
+      onProgress: (progress) => {
+        this.onLoadProgress(progress);
+        this.externalOnProgress?.(progress);
+      },
+    });
 
     this.loadingOverlay = document.createElement("div");
     this.loadingOverlay.className = "splat-ui-loading";
-    this.loadingOverlay.textContent = "Loading model...";
+    this.loadingOverlay.textContent = "Loading model... 0%";
 
     this.fpsOverlay = document.createElement("div");
     this.fpsOverlay.className = "splat-ui-fps";
@@ -94,7 +105,7 @@ export class SplatViewerUI {
     this.resetButton.addEventListener("click", this.onResetClick);
 
     this.initialize(initialPercent).catch((error) => {
-      this.loadingOverlay.textContent = "Model load failed";
+      this.loadingOverlay.textContent = this.describeLoadError(error);
       this.loadingOverlay.classList.add("is-error");
       console.error("[SplatViewerUI] Model load failed", error);
     });
@@ -139,6 +150,60 @@ export class SplatViewerUI {
 
     this.updateStats();
     this.updateStatsLoop();
+  }
+
+  private onLoadProgress(progress: SplatRendererProgress): void {
+    this.latestProgress = Math.max(this.latestProgress, progress.progress);
+    const percentText = `${Math.round(this.latestProgress * 100)}%`;
+
+    if (progress.stage === "fetch") {
+      const loadedText = this.formatBytes(progress.loaded ?? 0);
+      const totalText = progress.total ? this.formatBytes(progress.total) : "unknown";
+      this.loadingOverlay.textContent = `Loading model (fetch)... ${percentText} (${loadedText} / ${totalText})`;
+      return;
+    }
+
+    if (progress.stage === "pack") {
+      const packed = progress.packed ?? 0;
+      const total = progress.packTotal ?? 0;
+      this.loadingOverlay.textContent = `Preparing model (pack)... ${percentText} (${packed.toLocaleString()} / ${total.toLocaleString()} splats)`;
+      return;
+    }
+
+    this.loadingOverlay.textContent = "Loading complete";
+  }
+
+  private describeLoadError(error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (/\b404\b/.test(message)) {
+      return "Model load failed: 404 (file not found).";
+    }
+
+    // Browser fetch failures often surface CORS and network failures under generic TypeError text.
+    if (/failed to fetch|networkerror|cors|cross-origin/i.test(message)) {
+      return "Model load failed: CORS/network error. Check server headers and URL.";
+    }
+
+    return "Model load failed.";
+  }
+
+  private formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+      return "0 B";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let unitIndex = 0;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+
+    const precision = unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(precision)} ${units[unitIndex]}`;
   }
 
   private updateStatsLoop(): void {
