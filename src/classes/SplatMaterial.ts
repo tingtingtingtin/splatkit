@@ -22,19 +22,16 @@ export function createSplatMaterial(): THREE.ShaderMaterial {
         side: THREE.DoubleSide,
     });
 
-    material.onBeforeRender = (renderer, scene, camera) => {
+    material.onBeforeRender = (renderer, _, camera) => {
         const payload = new THREE.Vector2();
         renderer.getSize(payload);
         material.uniforms.viewport.value.copy(payload);
 
         // Calculate focal length from projection matrix
-        // te[0] is (2 * fx / width), te[5] is (2 * fy / height)
         const te = camera.projectionMatrix.elements;
         const fx = (te[0] * payload.x) / 2.0;
         const fy = (te[5] * payload.y) / 2.0;
-        
         material.uniforms.focal.value.set(fx, fy);
-        console.log(fx, " ", fy)
     };
 
     return material;
