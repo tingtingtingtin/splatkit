@@ -1,4 +1,5 @@
 # SplatKit: Three.js Splat Viewer
+[![npm](https://img.shields.io/npm/v/@tingtingtingtin/splatkit)](https://www.npmjs.com/package/@tingtingtingtin/splatkit)
 
 Work-in-progress Gaussian Splat renderer built with Three.js, TypeScript, GLSL, and Web Workers.
 
