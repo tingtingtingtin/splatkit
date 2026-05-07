@@ -30,6 +30,26 @@ export class SplatViewerUI {
       this.container.style.position = "relative";
     }
 
+    // check WebGL support
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    if (!gl) {
+      this.loadingOverlay = document.createElement("div");
+      this.loadingOverlay.className = "splat-ui-loading is-error";
+      this.loadingOverlay.textContent = "WebGL is not available. Enable hardware acceleration in your browser settings.";
+      container.appendChild(this.loadingOverlay);
+      // Initialize remaining fields to satisfy TypeScript
+      this.viewer = null!;
+      this.fpsOverlay = null!;
+      this.panel = null!;
+      this.percentValue = null!;
+      this.percentSlider = null!;
+      this.instanceCountValue = null!;
+      this.cameraPositionValue = null!;
+      this.resetButton = null!;
+      return;
+    }
+
     this.externalOnProgress = options.onProgress;
 
     this.viewer = new SplatViewer(container, {

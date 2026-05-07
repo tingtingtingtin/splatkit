@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import SplatWorker from "./SplatWorker?worker&inline";
 import { SplatLoader } from "./SplatLoader";
 import type { SplatDataBuffers, SplatLoadProgress } from "./SplatLoader";
 import { createSplatGeometry } from "./SplatGeometry";
@@ -66,7 +67,7 @@ export class SplatRenderer {
     this.material.blendSrcAlpha = THREE.OneMinusDstAlphaFactor;
     this.material.blendDstAlpha = THREE.OneFactor;
 
-    this.worker = new Worker(new URL("./SplatWorker.ts", import.meta.url));
+    this.worker = new SplatWorker();
     this.worker.onmessage = (e) => this.handleWorkerMessage(e);
 
     this.ready = this.loadAndPrepare(url);
