@@ -32,6 +32,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:lib": "tsc && vite build --config vite.lib.config.ts",
+    "publish-patch": "tsc && vite build --config vite.lib.config.ts && npm version patch && npm publish",
     "preview": "vite preview",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/"

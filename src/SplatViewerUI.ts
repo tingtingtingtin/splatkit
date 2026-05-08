@@ -73,12 +73,13 @@ export class SplatViewerUI {
 
     // Detect WebGL support before creating the renderer to show a friendly
     // error rather than a cryptic Three.js failure.
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
     if (!gl) {
       this.loadingOverlay = document.createElement("div");
       this.loadingOverlay.className = "splat-ui-loading is-error";
-      this.loadingOverlay.textContent = "WebGL is not available. Enable hardware acceleration in your browser settings.";
+      this.loadingOverlay.textContent =
+        "WebGL is not available. Enable hardware acceleration in your browser settings.";
       container.appendChild(this.loadingOverlay);
       // Satisfy TypeScript's definite-assignment checks for readonly fields.
       this.viewer = null!;
