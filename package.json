@@ -1,7 +1,7 @@
 {
   "name": "@tingtingtingtin/splatkit",
   "private": false,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "Experimental Three.js Gaussian Splat viewer with embeddable headless and UI wrappers.",
   "main": "./dist-lib/index.js",
